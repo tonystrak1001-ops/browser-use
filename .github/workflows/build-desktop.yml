@@ -3,25 +3,14 @@ name: Build Desktop App
 on:
   push:
     branches: [main]
+    paths:
+      - '.github/workflows/build-desktop.yml'
   workflow_dispatch:
 
 jobs:
-  build:
-    name: Build on ${{ matrix.os }}
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        include:
-          - os: windows-latest
-            artifact_name: browser-use-windows
-            executable_suffix: .exe
-          - os: macos-latest
-            artifact_name: browser-use-macos
-            executable_suffix: ''
-          - os: ubuntu-latest
-            artifact_name: browser-use-linux
-            executable_suffix: ''
-
+  build-windows:
+    name: Build on Windows
+    runs-on: windows-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -32,212 +21,105 @@ jobs:
       - name: Set up Python 3.12
         run: uv python install 3.12
 
-      - name: Create virtual environment and install dependencies
+      - name: Create venv and install dependencies
         run: |
           uv venv --python 3.12
-          if ("${{ matrix.os }}" -eq "windows-latest") {
-            .venv\Scripts\Activate.ps1
-          } else {
-            source .venv/bin/activate
-          }
+          .venv\Scripts\Activate.ps1
           uv sync --all-extras --no-dev
-        shell: pwsh
-
-      - name: Install PyInstaller
-        run: |
-          if ("${{ matrix.os }}" -eq "windows-latest") {
-            .venv\Scripts\Activate.ps1
-          } else {
-            source .venv/bin/activate
-          }
           uv pip install pyinstaller
         shell: pwsh
 
-      - name: Install system dependencies (Linux)
-        if: matrix.os == 'ubuntu-latest'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libglib2.0-0 libnss3 libnspr4 libdbus-1-3 libatk1.0-0 libatk-bridge2.0-0 libcups2 libdrm2 libxkbcommon0 libatspi2.0-0 libxcomposite1 libxdamage1 libxfixes3 libxrandr2 libgbm1 libpango-1.0-0 libcairo2 libasound2t64
-
       - name: Build executable with PyInstaller
         run: |
-          if ("${{ matrix.os }}" -eq "windows-latest") {
-            .venv\Scripts\Activate.ps1
-          } else {
-            source .venv/bin/activate
-          }
-          pyinstaller --name browser-use `
-            --onefile `
-            --clean `
-            --noconfirm `
-            --collect-all browser_use `
-            --collect-all cdp_use `
-            --collect-all bubus `
-            --hidden-import=browser_use `
-            --hidden-import=browser_use.skill_cli.main `
-            --hidden-import=browser_use.cli `
-            --hidden-import=browser_use.agent.service `
-            --hidden-import=browser_use.agent.views `
-            --hidden-import=browser_use.browser `
-            --hidden-import=browser_use.browser.session `
-            --hidden-import=browser_use.browser.views `
-            --hidden-import=browser_use.tools.service `
-            --hidden-import=browser_use.dom.service `
-            --hidden-import=browser_use.llm.openai.chat `
-            --hidden-import=browser_use.llm.anthropic.chat `
-            --hidden-import=browser_use.llm.google.chat `
-            --hidden-import=browser_use.llm.browser_use.chat `
-            --hidden-import=browser_use.llm.groq.chat `
-            --hidden-import=browser_use.llm.ollama.chat `
-            --hidden-import=browser_use.llm.mistral.chat `
-            --hidden-import=browser_use.llm.azure.chat `
-            --hidden-import=browser_use.llm.litellm.chat `
-            --hidden-import=browser_use.llm.deepseek.chat `
-            --hidden-import=browser_use.llm.cerebras.chat `
-            --hidden-import=browser_use.llm.vercel.chat `
-            --hidden-import=browser_use.llm.openrouter.chat `
-            --hidden-import=browser_use.llm.oci_raw.chat `
-            --hidden-import=browser_use.llm.aws.chat_bedrock `
-            --hidden-import=browser_use.llm.aws.chat_anthropic `
-            --hidden-import=browser_use.mcp.server `
-            --hidden-import=browser_use.mcp.client `
-            --hidden-import=browser_use.mcp.controller `
-            --hidden-import=browser_use.sandbox.sandbox `
-            --hidden-import=browser_use.integrations.gmail.actions `
-            --hidden-import=browser_use.integrations.gmail.service `
-            --hidden-import=browser_use.filesystem.file_system `
-            --hidden-import=browser_use.skills.service `
-            --hidden-import=browser_use.telemetry.service `
-            --hidden-import=browser_use.tokens.service `
-            --hidden-import=browser_use.sync.service `
-            --hidden-import=browser_use.sync.auth `
-            --hidden-import=browser_use.logging_config `
-            --hidden-import=browser_use.config `
-            --hidden-import=browser_use.observability `
-            --hidden-import=browser_use.exceptions `
-            --hidden-import=browser_use.utils `
-            --hidden-import=browser_use.init_cmd `
-            --hidden-import=browser_use.actor.page `
-            --hidden-import=browser_use.actor.element `
-            --hidden-import=browser_use.actor.mouse `
-            --hidden-import=browser_use.actor.utils `
-            --hidden-import=browser_use.dom.serializer.serializer `
-            --hidden-import=browser_use.dom.serializer.html_serializer `
-            --hidden-import=browser_use.dom.serializer.clickable_elements `
-            --hidden-import=browser_use.dom.serializer.eval_serializer `
-            --hidden-import=browser_use.dom.serializer.paint_order `
-            --hidden-import=browser_use.dom.enhanced_snapshot `
-            --hidden-import=browser_use.dom.markdown_extractor `
-            --hidden-import=browser_use.dom.utils `
-            --hidden-import=browser_use.dom.views `
-            --hidden-import=browser_use.screenshots.service `
-            --hidden-import=browser_use.browser.cloud.cloud `
-            --hidden-import=browser_use.browser.profile `
-            --hidden-import=browser_use.browser.session_manager `
-            --hidden-import=browser_use.browser.video_recorder `
-            --hidden-import=browser_use.browser.demo_mode `
-            --hidden-import=browser_use.browser.python_highlights `
-            --hidden-import=browser_use.browser.events `
-            --hidden-import=browser_use.agent.message_manager.service `
-            --hidden-import=browser_use.agent.message_manager.utils `
-            --hidden-import=browser_use.agent.message_manager.views `
-            --hidden-import=browser_use.agent.gif `
-            --hidden-import=browser_use.agent.judge `
-            --hidden-import=browser_use.agent.prompts `
-            --hidden-import=browser_use.agent.variable_detector `
-            --hidden-import=browser_use.agent.cloud_events `
-            --hidden-import=browser_use.tools.extraction.schema_utils `
-            --hidden-import=browser_use.tools.extraction.views `
-            --hidden-import=browser_use.tools.registry.service `
-            --hidden-import=browser_use.tools.registry.views `
-            --hidden-import=browser_use.tools.utils `
-            --hidden-import=browser_use.tools.views `
-            --hidden-import=browser_use.browser.watchdogs.aboutblank_watchdog `
-            --hidden-import=browser_use.browser.watchdogs.captcha_watchdog `
-            --hidden-import=browser_use.browser.watchdogs.crash_watchdog `
-            --hidden-import=browser_use.browser.watchdogs.default_action_watchdog `
-            --hidden-import=browser_use.browser.watchdogs.dom_watchdog `
-            --hidden-import=browser_use.browser.watchdogs.downloads_watchdog `
-            --hidden-import=browser_use.browser.watchdogs.har_recording_watchdog `
-            --hidden-import=browser_use.browser.watchdogs.local_browser_watchdog `
-            --hidden-import=browser_use.browser.watchdogs.permissions_watchdog `
-            --hidden-import=browser_use.browser.watchdogs.popups_watchdog `
-            --hidden-import=browser_use.browser.watchdogs.recording_watchdog `
-            --hidden-import=browser_use.browser.watchdogs.screenshot_watchdog `
-            --hidden-import=browser_use.browser.watchdogs.security_watchdog `
-            --hidden-import=browser_use.browser.watchdogs.storage_state_watchdog `
-            --hidden-import=browser_use.browser._cdp_timeout `
-            --hidden-import=browser_use.browser.watchdog_base `
-            --hidden-import=browser_use.skill_cli.commands.browser `
-            --hidden-import=browser_use.skill_cli.commands.cloud `
-            --hidden-import=browser_use.skill_cli.commands.doctor `
-            --hidden-import=browser_use.skill_cli.commands.python_exec `
-            --hidden-import=browser_use.skill_cli.commands.setup `
-            --hidden-import=browser_use.skill_cli.actions `
-            --hidden-import=browser_use.skill_cli.browser `
-            --hidden-import=browser_use.skill_cli.config `
-            --hidden-import=browser_use.skill_cli.daemon `
-            --hidden-import=browser_use.skill_cli.main `
-            --hidden-import=browser_use.skill_cli.profile_use `
-            --hidden-import=browser_use.skill_cli.python_session `
-            --hidden-import=browser_use.skill_cli.sessions `
-            --hidden-import=browser_use.skill_cli.tunnel `
-            --hidden-import=browser_use.skill_cli.utils `
-            --hidden-import=textual `
-            --hidden-import=rich `
-            --hidden-import=click `
-            --hidden-import=pydantic `
-            --hidden-import=dotenv `
-            --hidden-import=httpx `
-            --hidden-import=aiohttp `
-            --hidden-import=openai `
-            --hidden-import=anthropic `
-            --hidden-import=google.genai `
-            --hidden-import=groq `
-            --hidden-import=ollama `
-            --hidden-import=mcp `
-            --hidden-import=pyotp `
-            --hidden-import=PIL `
-            --hidden-import=markdownify `
-            --hidden-import=pypdf `
-            --hidden-import=reportlab `
-            --hidden-import=cloudpickle `
-            --hidden-import=docx `
-            --hidden-import=psutil `
-            --hidden-import=screeninfo `
-            --hidden-import=InquirerPy `
-            --hidden-import=posthog `
-            --hidden-import=anyio `
-            --hidden-import=cdp_use `
-            --hidden-import=bubus `
-            --hidden-import=uuid7 `
-            --hidden-import=google.api_core `
-            --hidden-import=google.auth `
-            --hidden-import=google_auth_oauthlib `
-            --hidden-import=google.api_core.client_options `
-            --hidden-import=browser_use_sdk `
-            --add-data "browser_use/agent/system_prompts/*.md;browser_use/agent/system_prompts" `
-            --add-data "browser_use/dom/*.js;browser_use/dom" `
-            --add-data "browser_use/py.typed;browser_use" `
-            browser_use/skill_cli/main.py
-        shell: pwsh
-
-      - name: Rename executable (Unix)
-        if: matrix.os != 'windows-latest'
-        run: |
-          chmod +x dist/browser-use${{ matrix.executable_suffix }}
+          .venv\Scripts\Activate.ps1
+          pyinstaller --name browser-use --onefile --clean --noconfirm --collect-all browser_use --collect-all cdp_use --collect-all bubus --hidden-import=browser_use --hidden-import=browser_use.skill_cli.main --hidden-import=browser_use.cli --hidden-import=browser_use.agent.service --hidden-import=browser_use.agent.views --hidden-import=browser_use.browser --hidden-import=browser_use.browser.session --hidden-import=browser_use.browser.views --hidden-import=browser_use.tools.service --hidden-import=browser_use.dom.service --hidden-import=browser_use.llm.openai.chat --hidden-import=browser_use.llm.anthropic.chat --hidden-import=browser_use.llm.google.chat --hidden-import=browser_use.llm.browser_use.chat --hidden-import=browser_use.llm.groq.chat --hidden-import=browser_use.llm.ollama.chat --hidden-import=browser_use.llm.mistral.chat --hidden-import=browser_use.llm.azure.chat --hidden-import=browser_use.llm.litellm.chat --hidden-import=browser_use.llm.deepseek.chat --hidden-import=browser_use.llm.cerebras.chat --hidden-import=browser_use.llm.vercel.chat --hidden-import=browser_use.llm.openrouter.chat --hidden-import=browser_use.llm.oci_raw.chat --hidden-import=browser_use.llm.aws.chat_bedrock --hidden-import=browser_use.llm.aws.chat_anthropic --hidden-import=browser_use.mcp.server --hidden-import=browser_use.mcp.client --hidden-import=browser_use.mcp.controller --hidden-import=browser_use.sandbox.sandbox --hidden-import=browser_use.integrations.gmail.actions --hidden-import=browser_use.integrations.gmail.service --hidden-import=browser_use.filesystem.file_system --hidden-import=browser_use.skills.service --hidden-import=browser_use.telemetry.service --hidden-import=browser_use.tokens.service --hidden-import=browser_use.sync.service --hidden-import=browser_use.sync.auth --hidden-import=browser_use.logging_config --hidden-import=browser_use.config --hidden-import=browser_use.observability --hidden-import=browser_use.exceptions --hidden-import=browser_use.utils --hidden-import=browser_use.init_cmd --hidden-import=browser_use.actor.page --hidden-import=browser_use.actor.element --hidden-import=browser_use.actor.mouse --hidden-import=browser_use.actor.utils --hidden-import=browser_use.dom.serializer.serializer --hidden-import=browser_use.dom.serializer.html_serializer --hidden-import=browser_use.dom.serializer.clickable_elements --hidden-import=browser_use.dom.serializer.eval_serializer --hidden-import=browser_use.dom.serializer.paint_order --hidden-import=browser_use.dom.enhanced_snapshot --hidden-import=browser_use.dom.markdown_extractor --hidden-import=browser_use.dom.utils --hidden-import=browser_use.dom.views --hidden-import=browser_use.screenshots.service --hidden-import=browser_use.browser.cloud.cloud --hidden-import=browser_use.browser.profile --hidden-import=browser_use.browser.session_manager --hidden-import=browser_use.browser.video_recorder --hidden-import=browser_use.browser.demo_mode --hidden-import=browser_use.browser.python_highlights --hidden-import=browser_use.browser.events --hidden-import=browser_use.agent.message_manager.service --hidden-import=browser_use.agent.message_manager.utils --hidden-import=browser_use.agent.message_manager.views --hidden-import=browser_use.agent.gif --hidden-import=browser_use.agent.judge --hidden-import=browser_use.agent.prompts --hidden-import=browser_use.agent.variable_detector --hidden-import=browser_use.agent.cloud_events --hidden-import=browser_use.tools.extraction.schema_utils --hidden-import=browser_use.tools.extraction.views --hidden-import=browser_use.tools.registry.service --hidden-import=browser_use.tools.registry.views --hidden-import=browser_use.tools.utils --hidden-import=browser_use.tools.views --hidden-import=browser_use.browser.watchdogs.aboutblank_watchdog --hidden-import=browser_use.browser.watchdogs.captcha_watchdog --hidden-import=browser_use.browser.watchdogs.crash_watchdog --hidden-import=browser_use.browser.watchdogs.default_action_watchdog --hidden-import=browser_use.browser.watchdogs.dom_watchdog --hidden-import=browser_use.browser.watchdogs.downloads_watchdog --hidden-import=browser_use.browser.watchdogs.har_recording_watchdog --hidden-import=browser_use.browser.watchdogs.local_browser_watchdog --hidden-import=browser_use.browser.watchdogs.permissions_watchdog --hidden-import=browser_use.browser.watchdogs.popups_watchdog --hidden-import=browser_use.browser.watchdogs.recording_watchdog --hidden-import=browser_use.browser.watchdogs.screenshot_watchdog --hidden-import=browser_use.browser.watchdogs.security_watchdog --hidden-import=browser_use.browser.watchdogs.storage_state_watchdog --hidden-import=browser_use.browser._cdp_timeout --hidden-import=browser_use.browser.watchdog_base --hidden-import=browser_use.skill_cli.commands.browser --hidden-import=browser_use.skill_cli.commands.cloud --hidden-import=browser_use.skill_cli.commands.doctor --hidden-import=browser_use.skill_cli.commands.python_exec --hidden-import=browser_use.skill_cli.commands.setup --hidden-import=browser_use.skill_cli.actions --hidden-import=browser_use.skill_cli.browser --hidden-import=browser_use.skill_cli.config --hidden-import=browser_use.skill_cli.daemon --hidden-import=browser_use.skill_cli.main --hidden-import=browser_use.skill_cli.profile_use --hidden-import=browser_use.skill_cli.python_session --hidden-import=browser_use.skill_cli.sessions --hidden-import=browser_use.skill_cli.tunnel --hidden-import=browser_use.skill_cli.utils --hidden-import=textual --hidden-import=rich --hidden-import=click --hidden-import=pydantic --hidden-import=dotenv --hidden-import=httpx --hidden-import=aiohttp --hidden-import=openai --hidden-import=anthropic --hidden-import=google.genai --hidden-import=groq --hidden-import=ollama --hidden-import=mcp --hidden-import=pyotp --hidden-import=PIL --hidden-import=markdownify --hidden-import=pypdf --hidden-import=reportlab --hidden-import=cloudpickle --hidden-import=docx --hidden-import=psutil --hidden-import=screeninfo --hidden-import=InquirerPy --hidden-import=posthog --hidden-import=anyio --hidden-import=cdp_use --hidden-import=bubus --hidden-import=uuid7 --hidden-import=google.api_core --hidden-import=google.auth --hidden-import=google_auth_oauthlib --hidden-import=google.api_core.client_options --hidden-import=browser_use_sdk "--add-data=browser_use/agent/system_prompts/*.md;browser_use/agent/system_prompts" "--add-data=browser_use/dom/*.js;browser_use/dom" "--add-data=browser_use/py.typed;browser_use" browser_use/skill_cli/main.py
         shell: pwsh
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.artifact_name }}
-          path: dist/browser-use${{ matrix.executable_suffix }}
+          name: browser-use-windows
+          path: dist/browser-use.exe
+          retention-days: 30
+
+  build-macos:
+    name: Build on macOS
+    runs-on: macos-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+
+      - name: Set up Python 3.12
+        run: uv python install 3.12
+
+      - name: Create venv and install dependencies
+        run: |
+          uv venv --python 3.12
+          source .venv/bin/activate
+          uv sync --all-extras --no-dev
+          uv pip install pyinstaller
+
+      - name: Build executable with PyInstaller
+        run: |
+          source .venv/bin/activate
+          pyinstaller --name browser-use --onefile --clean --noconfirm --collect-all browser_use --collect-all cdp_use --collect-all bubus --hidden-import=browser_use --hidden-import=browser_use.skill_cli.main --hidden-import=browser_use.cli --hidden-import=browser_use.agent.service --hidden-import=browser_use.agent.views --hidden-import=browser_use.browser --hidden-import=browser_use.browser.session --hidden-import=browser_use.browser.views --hidden-import=browser_use.tools.service --hidden-import=browser_use.dom.service --hidden-import=browser_use.llm.openai.chat --hidden-import=browser_use.llm.anthropic.chat --hidden-import=browser_use.llm.google.chat --hidden-import=browser_use.llm.browser_use.chat --hidden-import=browser_use.llm.groq.chat --hidden-import=browser_use.llm.ollama.chat --hidden-import=browser_use.llm.mistral.chat --hidden-import=browser_use.llm.azure.chat --hidden-import=browser_use.llm.litellm.chat --hidden-import=browser_use.llm.deepseek.chat --hidden-import=browser_use.llm.cerebras.chat --hidden-import=browser_use.llm.vercel.chat --hidden-import=browser_use.llm.openrouter.chat --hidden-import=browser_use.llm.oci_raw.chat --hidden-import=browser_use.llm.aws.chat_bedrock --hidden-import=browser_use.llm.aws.chat_anthropic --hidden-import=browser_use.mcp.server --hidden-import=browser_use.mcp.client --hidden-import=browser_use.mcp.controller --hidden-import=browser_use.sandbox.sandbox --hidden-import=browser_use.integrations.gmail.actions --hidden-import=browser_use.integrations.gmail.service --hidden-import=browser_use.filesystem.file_system --hidden-import=browser_use.skills.service --hidden-import=browser_use.telemetry.service --hidden-import=browser_use.tokens.service --hidden-import=browser_use.sync.service --hidden-import=browser_use.sync.auth --hidden-import=browser_use.logging_config --hidden-import=browser_use.config --hidden-import=browser_use.observability --hidden-import=browser_use.exceptions --hidden-import=browser_use.utils --hidden-import=browser_use.init_cmd --hidden-import=browser_use.actor.page --hidden-import=browser_use.actor.element --hidden-import=browser_use.actor.mouse --hidden-import=browser_use.actor.utils --hidden-import=browser_use.dom.serializer.serializer --hidden-import=browser_use.dom.serializer.html_serializer --hidden-import=browser_use.dom.serializer.clickable_elements --hidden-import=browser_use.dom.serializer.eval_serializer --hidden-import=browser_use.dom.serializer.paint_order --hidden-import=browser_use.dom.enhanced_snapshot --hidden-import=browser_use.dom.markdown_extractor --hidden-import=browser_use.dom.utils --hidden-import=browser_use.dom.views --hidden-import=browser_use.screenshots.service --hidden-import=browser_use.browser.cloud.cloud --hidden-import=browser_use.browser.profile --hidden-import=browser_use.browser.session_manager --hidden-import=browser_use.browser.video_recorder --hidden-import=browser_use.browser.demo_mode --hidden-import=browser_use.browser.python_highlights --hidden-import=browser_use.browser.events --hidden-import=browser_use.agent.message_manager.service --hidden-import=browser_use.agent.message_manager.utils --hidden-import=browser_use.agent.message_manager.views --hidden-import=browser_use.agent.gif --hidden-import=browser_use.agent.judge --hidden-import=browser_use.agent.prompts --hidden-import=browser_use.agent.variable_detector --hidden-import=browser_use.agent.cloud_events --hidden-import=browser_use.tools.extraction.schema_utils --hidden-import=browser_use.tools.extraction.views --hidden-import=browser_use.tools.registry.service --hidden-import=browser_use.tools.registry.views --hidden-import=browser_use.tools.utils --hidden-import=browser_use.tools.views --hidden-import=browser_use.browser.watchdogs.aboutblank_watchdog --hidden-import=browser_use.browser.watchdogs.captcha_watchdog --hidden-import=browser_use.browser.watchdogs.crash_watchdog --hidden-import=browser_use.browser.watchdogs.default_action_watchdog --hidden-import=browser_use.browser.watchdogs.dom_watchdog --hidden-import=browser_use.browser.watchdogs.downloads_watchdog --hidden-import=browser_use.browser.watchdogs.har_recording_watchdog --hidden-import=browser_use.browser.watchdogs.local_browser_watchdog --hidden-import=browser_use.browser.watchdogs.permissions_watchdog --hidden-import=browser_use.browser.watchdogs.popups_watchdog --hidden-import=browser_use.browser.watchdogs.recording_watchdog --hidden-import=browser_use.browser.watchdogs.screenshot_watchdog --hidden-import=browser_use.browser.watchdogs.security_watchdog --hidden-import=browser_use.browser.watchdogs.storage_state_watchdog --hidden-import=browser_use.browser._cdp_timeout --hidden-import=browser_use.browser.watchdog_base --hidden-import=browser_use.skill_cli.commands.browser --hidden-import=browser_use.skill_cli.commands.cloud --hidden-import=browser_use.skill_cli.commands.doctor --hidden-import=browser_use.skill_cli.commands.python_exec --hidden-import=browser_use.skill_cli.commands.setup --hidden-import=browser_use.skill_cli.actions --hidden-import=browser_use.skill_cli.browser --hidden-import=browser_use.skill_cli.config --hidden-import=browser_use.skill_cli.daemon --hidden-import=browser_use.skill_cli.main --hidden-import=browser_use.skill_cli.profile_use --hidden-import=browser_use.skill_cli.python_session --hidden-import=browser_use.skill_cli.sessions --hidden-import=browser_use.skill_cli.tunnel --hidden-import=browser_use.skill_cli.utils --hidden-import=textual --hidden-import=rich --hidden-import=click --hidden-import=pydantic --hidden-import=dotenv --hidden-import=httpx --hidden-import=aiohttp --hidden-import=openai --hidden-import=anthropic --hidden-import=google.genai --hidden-import=groq --hidden-import=ollama --hidden-import=mcp --hidden-import=pyotp --hidden-import=PIL --hidden-import=markdownify --hidden-import=pypdf --hidden-import=reportlab --hidden-import=cloudpickle --hidden-import=docx --hidden-import=psutil --hidden-import=screeninfo --hidden-import=InquirerPy --hidden-import=posthog --hidden-import=anyio --hidden-import=cdp_use --hidden-import=bubus --hidden-import=uuid7 --hidden-import=google.api_core --hidden-import=google.auth --hidden-import=google_auth_oauthlib --hidden-import=google.api_core.client_options --hidden-import=browser_use_sdk "--add-data=browser_use/agent/system_prompts/*.md:browser_use/agent/system_prompts" "--add-data=browser_use/dom/*.js:browser_use/dom" "--add-data=browser_use/py.typed:browser_use" browser_use/skill_cli/main.py
+
+      - name: Make executable
+        run: chmod +x dist/browser-use
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: browser-use-macos
+          path: dist/browser-use
+          retention-days: 30
+
+  build-linux:
+    name: Build on Linux
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+
+      - name: Set up Python 3.12
+        run: uv python install 3.12
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libglib2.0-0 libnss3 libnspr4 libdbus-1-3 libatk1.0-0 libatk-bridge2.0-0 libcups2 libdrm2 libxkbcommon0 libatspi2.0-0 libxcomposite1 libxdamage1 libxfixes3 libxrandr2 libgbm1 libpango-1.0-0 libcairo2 libasound2t64
+
+      - name: Create venv and install dependencies
+        run: |
+          uv venv --python 3.12
+          source .venv/bin/activate
+          uv sync --all-extras --no-dev
+          uv pip install pyinstaller
+
+      - name: Build executable with PyInstaller
+        run: |
+          source .venv/bin/activate
+          pyinstaller --name browser-use --onefile --clean --noconfirm --collect-all browser_use --collect-all cdp_use --collect-all bubus --hidden-import=browser_use --hidden-import=browser_use.skill_cli.main --hidden-import=browser_use.cli --hidden-import=browser_use.agent.service --hidden-import=browser_use.agent.views --hidden-import=browser_use.browser --hidden-import=browser_use.browser.session --hidden-import=browser_use.browser.views --hidden-import=browser_use.tools.service --hidden-import=browser_use.dom.service --hidden-import=browser_use.llm.openai.chat --hidden-import=browser_use.llm.anthropic.chat --hidden-import=browser_use.llm.google.chat --hidden-import=browser_use.llm.browser_use.chat --hidden-import=browser_use.llm.groq.chat --hidden-import=browser_use.llm.ollama.chat --hidden-import=browser_use.llm.mistral.chat --hidden-import=browser_use.llm.azure.chat --hidden-import=browser_use.llm.litellm.chat --hidden-import=browser_use.llm.deepseek.chat --hidden-import=browser_use.llm.cerebras.chat --hidden-import=browser_use.llm.vercel.chat --hidden-import=browser_use.llm.openrouter.chat --hidden-import=browser_use.llm.oci_raw.chat --hidden-import=browser_use.llm.aws.chat_bedrock --hidden-import=browser_use.llm.aws.chat_anthropic --hidden-import=browser_use.mcp.server --hidden-import=browser_use.mcp.client --hidden-import=browser_use.mcp.controller --hidden-import=browser_use.sandbox.sandbox --hidden-import=browser_use.integrations.gmail.actions --hidden-import=browser_use.integrations.gmail.service --hidden-import=browser_use.filesystem.file_system --hidden-import=browser_use.skills.service --hidden-import=browser_use.telemetry.service --hidden-import=browser_use.tokens.service --hidden-import=browser_use.sync.service --hidden-import=browser_use.sync.auth --hidden-import=browser_use.logging_config --hidden-import=browser_use.config --hidden-import=browser_use.observability --hidden-import=browser_use.exceptions --hidden-import=browser_use.utils --hidden-import=browser_use.init_cmd --hidden-import=browser_use.actor.page --hidden-import=browser_use.actor.element --hidden-import=browser_use.actor.mouse --hidden-import=browser_use.actor.utils --hidden-import=browser_use.dom.serializer.serializer --hidden-import=browser_use.dom.serializer.html_serializer --hidden-import=browser_use.dom.serializer.clickable_elements --hidden-import=browser_use.dom.serializer.eval_serializer --hidden-import=browser_use.dom.serializer.paint_order --hidden-import=browser_use.dom.enhanced_snapshot --hidden-import=browser_use.dom.markdown_extractor --hidden-import=browser_use.dom.utils --hidden-import=browser_use.dom.views --hidden-import=browser_use.screenshots.service --hidden-import=browser_use.browser.cloud.cloud --hidden-import=browser_use.browser.profile --hidden-import=browser_use.browser.session_manager --hidden-import=browser_use.browser.video_recorder --hidden-import=browser_use.browser.demo_mode --hidden-import=browser_use.browser.python_highlights --hidden-import=browser_use.browser.events --hidden-import=browser_use.agent.message_manager.service --hidden-import=browser_use.agent.message_manager.utils --hidden-import=browser_use.agent.message_manager.views --hidden-import=browser_use.agent.gif --hidden-import=browser_use.agent.judge --hidden-import=browser_use.agent.prompts --hidden-import=browser_use.agent.variable_detector --hidden-import=browser_use.agent.cloud_events --hidden-import=browser_use.tools.extraction.schema_utils --hidden-import=browser_use.tools.extraction.views --hidden-import=browser_use.tools.registry.service --hidden-import=browser_use.tools.registry.views --hidden-import=browser_use.tools.utils --hidden-import=browser_use.tools.views --hidden-import=browser_use.browser.watchdogs.aboutblank_watchdog --hidden-import=browser_use.browser.watchdogs.captcha_watchdog --hidden-import=browser_use.browser.watchdogs.crash_watchdog --hidden-import=browser_use.browser.watchdogs.default_action_watchdog --hidden-import=browser_use.browser.watchdogs.dom_watchdog --hidden-import=browser_use.browser.watchdogs.downloads_watchdog --hidden-import=browser_use.browser.watchdogs.har_recording_watchdog --hidden-import=browser_use.browser.watchdogs.local_browser_watchdog --hidden-import=browser_use.browser.watchdogs.permissions_watchdog --hidden-import=browser_use.browser.watchdogs.popups_watchdog --hidden-import=browser_use.browser.watchdogs.recording_watchdog --hidden-import=browser_use.browser.watchdogs.screenshot_watchdog --hidden-import=browser_use.browser.watchdogs.security_watchdog --hidden-import=browser_use.browser.watchdogs.storage_state_watchdog --hidden-import=browser_use.browser._cdp_timeout --hidden-import=browser_use.browser.watchdog_base --hidden-import=browser_use.skill_cli.commands.browser --hidden-import=browser_use.skill_cli.commands.cloud --hidden-import=browser_use.skill_cli.commands.doctor --hidden-import=browser_use.skill_cli.commands.python_exec --hidden-import=browser_use.skill_cli.commands.setup --hidden-import=browser_use.skill_cli.actions --hidden-import=browser_use.skill_cli.browser --hidden-import=browser_use.skill_cli.config --hidden-import=browser_use.skill_cli.daemon --hidden-import=browser_use.skill_cli.main --hidden-import=browser_use.skill_cli.profile_use --hidden-import=browser_use.skill_cli.python_session --hidden-import=browser_use.skill_cli.sessions --hidden-import=browser_use.skill_cli.tunnel --hidden-import=browser_use.skill_cli.utils --hidden-import=textual --hidden-import=rich --hidden-import=click --hidden-import=pydantic --hidden-import=dotenv --hidden-import=httpx --hidden-import=aiohttp --hidden-import=openai --hidden-import=anthropic --hidden-import=google.genai --hidden-import=groq --hidden-import=ollama --hidden-import=mcp --hidden-import=pyotp --hidden-import=PIL --hidden-import=markdownify --hidden-import=pypdf --hidden-import=reportlab --hidden-import=cloudpickle --hidden-import=docx --hidden-import=psutil --hidden-import=screeninfo --hidden-import=InquirerPy --hidden-import=posthog --hidden-import=anyio --hidden-import=cdp_use --hidden-import=bubus --hidden-import=uuid7 --hidden-import=google.api_core --hidden-import=google.auth --hidden-import=google_auth_oauthlib --hidden-import=google.api_core.client_options --hidden-import=browser_use_sdk "--add-data=browser_use/agent/system_prompts/*.md:browser_use/agent/system_prompts" "--add-data=browser_use/dom/*.js:browser_use/dom" "--add-data=browser_use/py.typed:browser_use" browser_use/skill_cli/main.py
+
+      - name: Make executable
+        run: chmod +x dist/browser-use
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: browser-use-linux
+          path: dist/browser-use
           retention-days: 30
 
   release:
     name: Create Release
-    needs: build
+    needs: [build-windows, build-macos, build-linux]
     runs-on: ubuntu-latest
     if: github.event_name == 'workflow_dispatch'
     permissions:
@@ -259,9 +141,9 @@ jobs:
             Standalone executable - no Python installation required!
 
             ### Downloads
-            - **Windows**: `browser-use-windows` (browser-use.exe)
-            - **macOS**: `browser-use-macos` (browser-use)
-            - **Linux**: `browser-use-linux` (browser-use)
+            - **Windows**: `browser-use-windows/browser-use.exe`
+            - **macOS**: `browser-use-macos/browser-use`
+            - **Linux**: `browser-use-linux/browser-use`
 
             ### Usage
             1. Download the executable for your platform
